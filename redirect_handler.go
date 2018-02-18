@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"log"
+	"net/url"
 )
 
 type RedirectHandler struct {
@@ -16,14 +17,18 @@ func NewRedirectHandler(opts Options) RedirectHandler {
 }
 
 func (h RedirectHandler) buildRedirectURL(req http.Request) (string, error) {
-	target := req.Host + req.URL.Path
-	if len(req.URL.RawQuery) > 0 {
-		target += "?" + req.URL.RawQuery
+	log.Printf("before: %s", req.URL.String())
+
+	u, err := url.Parse(h.Opts.RedirectURL)
+	if err != nil {
+		return "", err
 	}
+	req.URL.Scheme = u.Scheme
+	req.URL.Host = u.Host
 
-	log.Printf("redirect from: http://%s to: https://%s", target, target)
+	log.Printf("after: %s", req.URL.String())
 
-	return "https://" + target, nil
+	return req.URL.String(), nil
 }
 
 func (h RedirectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -481,6 +481,8 @@ func (p *OAuthProxy) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		p.RobotsTxt(rw)
 	case path == p.PingPath:
 		p.PingPage(rw)
+	case p.IsWhitelistedRequest(req):
+		p.serveMux.ServeHTTP(rw, req)
 	case p.IsWhitelistedPath(path):
 		p.serveMux.ServeHTTP(rw, req)
 	case p.IsWhitelistedHost(host):
