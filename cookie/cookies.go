@@ -18,6 +18,16 @@ import (
 // cookies are stored in a 3 part (value + timestamp + signature) to enforce that the values are as originally set.
 // additionally, the 'value' is encrypted so it's opaque to the browser
 
+func Nonce() (nonce string, err error) {
+	b := make([]byte, 16)
+	_, err = rand.Read(b)
+	if err != nil {
+		return
+	}
+	nonce = fmt.Sprintf("%x", b)
+	return
+}
+
 // Validate ensures a cookie is properly signed
 func Validate(cookie *http.Cookie, seed string, expiration time.Duration) (value string, t time.Time, ok bool) {
 	// value, timestamp, sig
