@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/brunnels/oauth2_proxy/api"
+	//"github.com/brunnels/oauth2_proxy/api"
 	"encoding/base64"
 	"bytes"
 	"io/ioutil"
@@ -114,38 +114,39 @@ func getOwncloudHeader(access_token string) http.Header {
 }
 
 func (p *OwncloudProvider) GetEmailAddress(s *SessionState) (string, error) {
-	if s.AccessToken == "" {
-		return "", errors.New("missing access token")
-	}
-
-	req, err := http.NewRequest("GET", p.ValidateURL.String()+"?format=json", nil)
-
-	if err != nil {
-		return "", err
-	}
-	req.Header = getOwncloudHeader(s.AccessToken)
-
-	type result struct {
-		Ocs struct {
-			Meta struct {
-				Status     string `json:"status"`
-				StatusCode int    `json:"statuscode"`
-				Message    string `json:"message"`
-			} `json:"meta"`
-			Data struct {
-				Id          string `json:"id"`
-				DisplayName string `json:"display-name"`
-				Email       string `json:"email"`
-			} `json:"data"`
-		} `json:"ocs"`
-	}
-	var r result
-	err = api.RequestJson(req, &r)
-	if err != nil {
-		return "", err
-	}
-	if r.Ocs.Data.Id == "" {
-		return "", errors.New("no id")
-	}
-	return r.Ocs.Data.Id + "@" + p.LoginURL.Host, nil
+	return s.User + "@" + p.LoginURL.Host, nil
+	//if s.AccessToken == "" {
+	//	return "", errors.New("missing access token")
+	//}
+	//
+	//req, err := http.NewRequest("GET", p.ValidateURL.String()+"?format=json", nil)
+	//
+	//if err != nil {
+	//	return "", err
+	//}
+	//req.Header = getOwncloudHeader(s.AccessToken)
+	//
+	//type result struct {
+	//	Ocs struct {
+	//		Meta struct {
+	//			Status     string `json:"status"`
+	//			StatusCode int    `json:"statuscode"`
+	//			Message    string `json:"message"`
+	//		} `json:"meta"`
+	//		Data struct {
+	//			Id          string `json:"id"`
+	//			DisplayName string `json:"display-name"`
+	//			Email       string `json:"email"`
+	//		} `json:"data"`
+	//	} `json:"ocs"`
+	//}
+	//var r result
+	//err = api.RequestJson(req, &r)
+	//if err != nil {
+	//	return "", err
+	//}
+	//if r.Ocs.Data.Id == "" {
+	//	return "", errors.New("no id")
+	//}
+	//return r.Ocs.Data.Id + "@" + p.LoginURL.Host, nil
 }
