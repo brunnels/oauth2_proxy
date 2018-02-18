@@ -7,6 +7,10 @@ import (
 	"net/url"
 
 	"github.com/brunnels/oauth2_proxy/api"
+	"encoding/base64"
+	"bytes"
+	"io/ioutil"
+	"encoding/json"
 )
 
 type OwncloudProvider struct {
@@ -40,6 +44,67 @@ func NewOwncloudProvider(p *ProviderData) *OwncloudProvider {
 		}
 	}
 	return &OwncloudProvider{ProviderData: p}
+}
+
+func (p *OwncloudProvider) Redeem(redirectURL, code string) (s *SessionState, err error) {
+	if code == "" {
+		err = errors.New("missing code")
+		return
+	}
+
+	params := url.Values{}
+	params.Add("grant_type", "authorization_code")
+	params.Add("code", code)
+	params.Add("redirect_uri", redirectURL)
+
+	var req *http.Request
+	req, err = http.NewRequest("POST", p.RedeemURL.String(), bytes.NewBufferString(params.Encode()))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Basic " + base64.StdEncoding.EncodeToString([]byte(p.ClientID+":"+p.ClientSecret)))
+
+	var resp *http.Response
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	var body []byte
+	body, err = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		err = fmt.Errorf("got %d from %q %s", resp.StatusCode, p.RedeemURL.String(), body)
+		return
+	}
+
+	// blindly try json and x-www-form-urlencoded
+	var jsonResponse struct {
+		AccessToken string `json:"access_token"`
+	}
+	err = json.Unmarshal(body, &jsonResponse)
+	if err == nil {
+		s = &SessionState{
+			AccessToken: jsonResponse.AccessToken,
+		}
+		return
+	}
+
+	var v url.Values
+	v, err = url.ParseQuery(string(body))
+	if err != nil {
+		return
+	}
+	if a := v.Get("access_token"); a != "" {
+		s = &SessionState{AccessToken: a}
+	} else {
+		err = fmt.Errorf("no access token found %s", body)
+	}
+	return
 }
 
 func getOwncloudHeader(access_token string) http.Header {
